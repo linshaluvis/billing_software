@@ -1,10 +1,14 @@
 {% extends 'base.html' %}
 {% block content %}
 {% load static %}
+{% load social_share %}
+
             <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
             <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
             <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
             <script src="https://printjs-4de6.kxcdn.com/print.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+
 
 
 <style>
@@ -193,19 +197,76 @@
         
 
         <div class="col-md-6  " style=" margin-left: 20%; margin-top: -10vh; width: 50%;">
-            <h1><ul style=" margin-left: 60%;">{{staff.company.company_name}}</ul></h1>
             <h1><ul>Sales Report</ul></h1>
            
         </div>
     <div class="d-flex mt-2"  style="background-color: white;height: 6vw;margin-left: 20vw;border-radius: 15px 15px 15px 15px;">
         <div class="date-range-box rounded" style="margin-left: 2vw;  margin-top: 2vh; background-color: white;height: 10vh; padding-top: 3vh;width: 30vw;padding-left: 1vw;">
             <label for="" style="color: rgb(0, 0, 0); font-size: 1.3vw;"><b>Date</b></label>
-            <input type="date" id="fromDate" class="date-input"> TO
-            <input type="date" id="toDate" class="date-input">
+            <input type="date" id="fromDate" class="date-input" > TO
+            <input type="date" id="toDate" class="date-input"  onchange="filterDates()">
             
         </div>
+        <script>
+            function formatDate(date) {
+                // Extract day, month, and year components
+                var day = date.getDate().toString().padStart(2, '0');
+                var month = (date.getMonth() + 1).toString().padStart(2, '0');
+                var year = date.getFullYear();
+                // Construct formatted date string
+                return day + '-' + month + '-' + year;
+            }
+            function filterDates() {
+                var fromDate = document.getElementById("fromDate").value;
+                var toDate = document.getElementById("toDate").value;
+
+                // Parse from and to dates
+                var fromDateObj = new Date(fromDate);
+                var toDateObj = new Date(toDate);
+                
+                // Format dates
+                var formattedFromDate = formatDate(fromDateObj);
+                var formattedToDate = formatDate(toDateObj);
+                
+                // Display the selected date range above the table
+                var dateDisplay = document.getElementById("dateDisplay");
+                dateDisplay.textContent = "From: " + formattedFromDate + " To: " + formattedToDate;
+                
+                // Rest of the filtering logic remains the same...
+                var selectedDate = new Date(fromDate);
+                selectedDate.setDate(selectedDate.getDate() - 1);
+                var table = document.getElementById("credittable");
+                var rows = table.getElementsByTagName("tr");
+                var emptyMessage = document.getElementById('emptyMessage');
+                var isEmpty = true;
+                for (var i = 1; i < rows.length; i++) {
+                    var currentDate = rows[i].getElementsByTagName("td")[0].innerText;
+                    var date = new Date(currentDate.replace(/(\d{2})-(\d{2})-(\d{2})/, "$2/$1/$3"));
+                    if ((fromDate && date >= selectedDate) || !fromDate) {
+                        if ((toDate && date <= new Date(toDate)) || !toDate) {
+                            rows[i].style.display = "table-row";
+                            isEmpty = false;
+                        } else {
+                            rows[i].style.display = "none";
+                        }
+                    } else {
+                        rows[i].style.display = "none";
+                    }
+                }
+                emptyMessage.style.display = isEmpty ? 'block' : 'none';
+            }
+            
+        </script>
+        
+        <script>
+            jQuery(document).ready(function($) {
+                $(".clickable-row").click(function() {
+                    window.location = $(this).data("href");
+                });
+            });
+        </script>
         <div class="ml-auto rounded " style="margin-left: 24vw; margin-top: 2vh; background-color: white;padding-right: 1vw;height: 10vh;" >
-            <a href="{% url 'salesinvoice_graph' %}">
+            <a href="{% url 'salesreport_graph' %}">
             <button class="btn p-0 ps-2 pe-2 ms-2" type="button">
                 <span>
                    <img width="30px" src="{% static 'images/graph.png' %}" alt="graph Icon">
@@ -221,32 +282,43 @@
                 </span>
             </button>
             
-            <button class="btn p-0 ps-2 pe-2 ms-2" type="button" onclick="exportToExcel()">
+            <button class="btn p-0 ps-2 pe-2 ms-2 mb-2" type="button" onclick="generatePDF()">
                 <span>
                     <img width="22px" src="{% static 'images/PDF_icon.png' %}" alt="Excel Icon">
                     <br><span style="color: black; font-size: small; ">Pdf</span>
                 </span>
             </button>
             
-            <button class="btn p-0 ps-2 pe-2 ms-2" type="button" onclick="exportToExcel()">
-                <span>
-                    <img width="22px" src="{% static 'images/share.png' %}" alt="Excel Icon">
-                    <br><span style="color: black; font-size: small; ">Share</span>
-                </span>
-            </button>
+           
+            <a class="btn   p-0 ps-2 " title="share">
+                <div class="btn-group dropleft ">
+                    <a class="dropdown-toggle bg-white" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <span>
+                            <img width="22px" src="{% static 'images/share.png' %}" alt="Excel Icon">
+                            <br><span style="color: black; font-size: small; ">Share</span>                    </a>
+                    <div class="dropdown-menu">
+                        <button type="button" class="btn text-dark" data-toggle="modal" data-target="#shareReportEmail">
+                            Share Via mail
+                          </button>
+                          <button type="button" class="btn text-dark " id="sendWhatsApp">
+                         {% post_to_whatsapp objects_or_url "whatsapp" %}
+                          </button>
+                    </div>
+                  </div>
+            </a>
 
             
 
            
                   
                 
-            <button id="printButton" class="btn p-0 ps-2 pe-2 ms-2" type="button" onclick="printSalesInvoice()">
+            <button id="printButton" class="btn p-0 ps-2 pe-2 ms-2" type="button" onclick="printfunction()">
                 <span>
                     <img width="22px" src="{% static 'images/printer.jpeg' %}" alt="Printer Icon">
                     <br><span style="color: black; font-size: small; ">Printer</span>
                 </span>
             </button>
-            <button class="btn p-0 ps-2 pe-2 ms-2" type="button" onclick="exportToExcel()">
+            <button class="btn p-0 ps-2 pe-2 ms-2" type="button"href="{% url 'sales_report' %}">
                 <span>
                     <img width="22px" src="{% static 'images/close.jpeg' %}" alt="Excel Icon">
                     <br><span style="color: black; font-size: small; ">Back</span>
@@ -265,76 +337,54 @@
     
     <!-- Add a container to display search results -->
     <div id="searchResultsContainer"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+
     <script>
-        function printSalesInvoice() {
-            // Clone the table to avoid modifying the original
-            var clonedTable = document.getElementById('printTable').cloneNode(true);
-    
-            // Remove any dropdown elements from the cloned table
-            var dropdowns = clonedTable.querySelectorAll('select');
-            dropdowns.forEach(function(dropdown) {
-                dropdown.remove();
-            });
-    
-            // Hide any dropdowns in the original table
-            var originalDropdowns = document.getElementById('printTable').querySelectorAll('select');
-            originalDropdowns.forEach(function(dropdown) {
-                dropdown.style.display = 'none';
-            });
-    
-            // Create a new window for printing
-            var printWindow = window.open('', '_blank');
-            printWindow.document.write('<html><head><title>Print</title>');
-            printWindow.document.write('<style>');
-            printWindow.document.write('/* Add any print-specific styling here */');
-            printWindow.document.write('h1 { margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid black; }');
-            printWindow.document.write('table { border-collapse: collapse; width: 100%; }');
-            printWindow.document.write('th, td { border: 1px solid black; padding: 8px; text-align: left; }');
-            printWindow.document.write('</style>');
-            printWindow.document.write('</head><body>');
-    
-            // Add the heading "Sales Invoice" before the table with a styled boundary
-            printWindow.document.write('<h1>Sales Invoice</h1>');
-    
-            // Add the table content
-            printWindow.document.write('<table>' + clonedTable.innerHTML + '</table>');
-            printWindow.document.write('</body></html>');
-            printWindow.document.close();
-    
-            // Trigger the print dialog in the new window
-            printWindow.print();
-    
-            // Show the original dropdowns after printing
-            originalDropdowns.forEach(function(dropdown) {
-                dropdown.style.display = 'block';
-            });
+        // Function to generate PDF from the table
+        function generatePDF() {
+            var element = document.getElementById('report'); // Assuming 'credittable' is the ID of your table element
+            var filename = 'sales_report.pdf';
+            var opt = {
+                margin: 1,
+                filename: filename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
         }
     </script>
+   
     
     
-    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.2/xlsx.full.min.js"></script>
+ 
     
     <script>
         function exportToExcel() {
-            // Make an AJAX request to the Django view
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", "{% url 'export_sales_invoices_to_excel' %}", true);
-            xhr.responseType = "blob";
-    
-            xhr.onload = function () {
-                if (xhr.status === 200) {
-                    // Create a link element and trigger the download
-                    var blob = new Blob([xhr.response], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-                    var link = document.createElement("a");
-                    link.href = window.URL.createObjectURL(blob);
-                    link.download = "sales_Report.xlsx";
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                }
-            };
-    
-            xhr.send();
+            // Get the table element
+            var table = document.querySelector('#credittable');
+            
+            // Convert table to worksheet
+            var ws = XLSX.utils.table_to_sheet(table);
+        
+            // Add custom table headings
+            ws['A1'] = { v: 'DATE', t: 's' };
+            ws['B1'] = { v: 'INVOICE NO', t: 's' };
+            ws['C1'] = { v: 'PARTY NAME', t: 's' };
+            ws['D1'] = { v: 'TYPE', t: 's' };
+            ws['E1'] = { v: 'AMOUNT', t: 's' };
+
+            // Add more custom headings as needed
+        
+            // Create a new workbook
+            var wb = XLSX.utils.book_new();
+            
+            // Append the worksheet to the workbook
+            XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+            
+            // Save the workbook to a file
+            XLSX.writeFile(wb, 'sales_report.xlsx');
         }
     </script>
     
@@ -402,12 +452,26 @@
 
 
     </script>
-    <div class="row">
+    {% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-success" role="alert">
+            <strong>{{ message }}!</strong>
+            
+        </div>
+    {% endfor %}
+{% endif %}
+
+    <div class="row" id="report">
         <div class="col-md-12" style="margin-left: 2vh;">
-            <div class="mt-3"  style="overflow: scroll;height: 28rem; width: 97%;" id="tablediv">
+            <div class="mt-3"   id="tablediv">
+                <h1><ul style=" text-align:center;">{{staff.company.company_name}}</ul></h1>
+                <h3><ul style=" text-align:center;">Sales Report</ul></h3>
+                <div id="dateDisplay" style="margin-bottom: 10px;color:black;margin-left:5%;"></div>
+
+
                 <table class="table tb table-bordered" id="credittable"  style="text-align: center;margin-left:3%;width:95%;">
                     <thead >
-                        <tr class="fs-2 tb">
+                        <tr class="fs-2 tb" id="tableHeadings">
                             <th class="text-white" style="background-color:rgb(61,68,101);width:16%;">
                                 DATE 
                                 <a class="extra text-white" onclick="toggleDropdown(0)">&nbsp;<i class="fa fa-filter" aria-hidden="true"></i></a>
@@ -449,25 +513,25 @@
                             
                             <th class="w-15 text-white" style="background-color:rgb(61,68,101);">
                                 TYPE
-                                &nbsp; <a class="extra" onclick="toggleDropdown(4)"><i class="fa fa-filter" aria-hidden="true"></i></a>
-                                <div class="dropdown-content" id="dropdownContent4">
-                                    <label for="filterInput4" style="color: black; text-align: left;">Equal To</label>
-                                    <input type="text" id="filterInput4" />
+                                &nbsp; <a class="extra" onclick="toggleDropdown(3)"><i class="fa fa-filter" aria-hidden="true"></i></a>
+                                <div class="dropdown-content" id="dropdownContent3">
+                                    <label for="filterInput3" style="color: black; text-align: left;">Equal To</label>
+                                    <input type="text" id="filterInput3" />
                                     <div class="button-row">
-                                        <a class="btn" style="background-color:rgb(61,68,101);" onclick="cleardropdown(4)">Clear</a> 
-                                        &nbsp;<a class="btn " style="background-color:rgb(61,68,101);" onclick="filterTable(4)">Apply</a>
+                                        <a class="btn" style="background-color:rgb(61,68,101);" onclick="cleardropdown(3)">Clear</a> 
+                                        &nbsp;<a class="btn " style="background-color:rgb(61,68,101);" onclick="filterTable(3)">Apply</a>
                                     </div>
                                 </div>
                             </th>
                             <th class="w-15 text-white" style="background-color:rgb(61,68,101);">
                                 AMOUNT
-                                <a class="extra text-white" onclick="toggleDropdown(3)">&nbsp;<i class="fa fa-filter" aria-hidden="true"></i></a>
-                                <div class="dropdown-content" id="dropdownContent3">
+                                <a class="extra text-white" onclick="toggleDropdown(4)">&nbsp;<i class="fa fa-filter" aria-hidden="true"></i></a>
+                                <div class="dropdown-content" id="dropdownContent4">
                                     <label for="filterInput4" style="color: black; text-align: left;">Equal To</label>
-                                    <input type="text" id="filterInput3" />
+                                    <input type="text" id="filterInput4" />
                                     <div class="button-row">
-                                        <a class="btn " style="background-color:rgb(61,68,101);" onclick="cleardropdown(3)">Clear</a> 
-                                        &nbsp;<a class="btn " style="background-color:rgb(61,68,101);" onclick="filterTable(3)">Apply</a>
+                                        <a class="btn " style="background-color:rgb(61,68,101);" onclick="cleardropdown(4)">Clear</a> 
+                                        &nbsp;<a class="btn " style="background-color:rgb(61,68,101);" onclick="filterTable(4)">Apply</a>
                                     </div>
                                 </div>
                             </th>
@@ -495,12 +559,12 @@
                     {% endfor %}
                     {% for s in sales_invoices %}
                     <tr class="sales-row">                                               
-                        <td class="text-center date-cell td_date " id="filterByDate" >{{s.date|date:"d-m-Y"}}</td>
-                        <td class="text-center td_invoice " id="filterByInvoiceNumber" >{{s.invoice_no}}</td>
-                        <td class="text-center td_name " id="filterByName" >{{s.party_name}}</td>
+                        <td class="text-center date-cell td_date "  >{{s.date| date:'d-m-Y'}}</td>
+                        <td class="text-center td_invoice " >{{s.invoice_no}}</td>
+                        <td class="text-center td_name "  >{{s.party_name}}</td>
 
-                        <td class="text-center td_transcation "  id="filterByTransaction" >Sale Invoice</td>
-                        <td class="text-center td_amount " id="filterByAmount" >{{s.grandtotal}}</td>
+                        <td class="text-center td_transcation "  >Sale Invoice</td>
+                        <td class="text-center td_amount "  >{{s.grandtotal}}</td>
 
                        
                             {% endfor %}
@@ -519,84 +583,6 @@
    </div>
 </div>
 
-<table id="printTable" style="display: none;">
-    <thead >
-        
-        <tr class="fs-2 tb" >
-            <th> DATE </th>
-            <th> INVOICE NO </th>
-            <th> PARTY NAME </th>
-            <th> TRANSCATION </th>
-            <th> PAYMENT TYPE </th>
-            <th> AMOUNT </th>
-            <th> BALANCE DUE </th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for t in sales_invoices %}
-        <tr>
-            <td>{{t.date | date:'d-m-Y'}}</td>
-            <td style="justify-content: center;text-align: center;">{{t.invoice_no}}</td>
-            <td>{{t.party.party_name}}</td>
-            <td>Sale Invoice</td>
-            <td>{{t.paymenttype}}</td>
-            <td>{{t.grandtotal}}</td>
-            <td>{{t.totalbalance}}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-
-<table id="tablemodel" hidden>
-    <thead>
-        <tr>
-            <th>Party Name</th>
-            <th>Party Email</th>
-            <th>Date</th>
-            <th>Supply State</th>
-            <th>Payment Method</th>
-            <th>Payment No</th>
-            <th>Adjustment</th>
-            <th>Advance</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td>State/Other State</td>
-            <td>Cash/Cheque/UPI/Bank Name</td>
-            <td>Cheque ID/UPI ID/Bank no</td>
-            <td></td>
-            <td></td>
-        </tr>
-    </tbody>
-</table>
-
-<table id="tableitemmodel" hidden>
-    <thead>
-        <tr>
-            <th>Invoice</th>
-            <th>Item Name</th>
-            <th>Item HSN</th>
-            <th>Quantity</th>
-            <th>Tax</th>
-            <th>Discount</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>Corresponding Row no from invoice Model </td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-        </tr>
-    </tbody>
-</table>
 
 <script>
     function getCookie(name) {
@@ -614,87 +600,55 @@
         }
         return cookieValue;
     }
-    function uploadFile() {
-        const fileInput = document.getElementById("file-input");
-        const file = fileInput.files[0];
-        const csrfToken = getCookie('csrftoken')
-
-        const formData = new FormData();
-        formData.append("file", file);
-
-        fetch("/import_excel", {
-            method: "POST",
-            headers: { 'X-CSRFToken': csrfToken },
-            body: formData
-        })
-        window.location.href = '/sales_invoice_list';
-
-
-    }
+  
 </script>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        // Function to filter rows based on date range
-        function filterRowsByDate() {
-            var fromDate = new Date(document.getElementById("fromDate").value);
-            var toDateInput = document.getElementById("toDate");
-            var toDate = new Date(toDateInput.value);
-
-            // Set the min attribute of toDate input to the selected fromDate
-            toDateInput.min = document.getElementById("fromDate").value;
-
-            var rows = document.querySelectorAll(".sales-row");
-
-            rows.forEach(function (row) {
-                var dateCell = row.querySelector(".date-cell");
-
-                if (dateCell) {
-                    var rowDate = new Date(dateCell.textContent.replace(/(\d{2})-(\d{2})-(\d{2})/, '20$3-$2-$1'));
-
-                    
-                    // Show/hide rows based on the date range (inclusive)
-                    if (rowDate >= fromDate && rowDate <= toDate) {
-                        row.style.display = "table-row";
-                    } else {
-                        row.style.display = "none";
-                    }
-                }
-            });
+<style>
+    @media print {
+        body {
+            width: 210mm; /* A4 width */
+            height: 297mm; /* A4 height */
+            margin: 0; /* Reset margin */
+            padding: 0; /* Reset padding */
         }
 
-        // Attach the filter function to the date input change event
-        document.getElementById("fromDate").addEventListener("change", filterRowsByDate);
-        document.getElementById("toDate").addEventListener("change", filterRowsByDate);
-    });
-</script>
+        #tablediv {
+            width: 100%; /* Full width for the table container */
+            page-break-before: always; /* Ensure each table starts on a new page */
+        }
+
+        table {
+            width: 100%; /* Full width for the table */
+        }
+    }
+</style>
+
 
 <script>
-    function printTable() {
-        // Get the table element by its ID
-        var table = document.getElementById('myTable');
-        
+    function printfunction(){
+       
+       
+        var tableHeadings = document.getElementById('tableHeadings');
+        tableHeadings.innerHTML = `
+            <th>DATE</th>
+            <th>INVOICE NO</th>
+            <th>PARTY NAME</th>
+            <th>TYPE</th>
+            <th>AMOUNT</th>
+        `;
 
-        // Exclude the last column (ACTION) from export
-        var noExportCols = Array.from(table.querySelectorAll('th.no-export, td.no-export'));
-        noExportCols.forEach(col => col.style.display = 'none');
+        // Save the current body content
+        var originalBodyContent = document.body.innerHTML;
 
-        
+        // Replace body content with the table
+        document.body.innerHTML = document.getElementById('tablediv').innerHTML;
 
-        // Open a new window and write the table HTML content to it
-        var newWin = window.open('', 'Print-Window');
-        newWin.document.open();
-        newWin.document.write('<html><head><style>@media print {table {width: 100%;border-collapse: collapse;} th, td {border: 1px solid #000; padding: 8px;}} </style></head><body>');
-        newWin.document.write('<h1>Sales Invoice</h1>');
-        newWin.document.write('<html><head><style>@media print {table {width: 100%;border-collapse: collapse;} th, td {border: 1px solid #000; padding: 8px;}}</style></head><body>' + table.outerHTML + '</body></html>');
-        newWin.document.close();
+        // Print the table
+        window.print();
 
-        // Restore the display of excluded columns after export
-        noExportCols.forEach(col => col.style.display = '');
-
-        // Trigger the print action
-        newWin.print();
+        // Restore the original body content
+        document.body.innerHTML = originalBodyContent;
     }
+        
 </script>
 
 
@@ -723,7 +677,7 @@
     
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-        XLSX.writeFile(wb, 'SalesInvoice.xlsx');
+        XLSX.writeFile(wb, 'Salesreport.xlsx');
     }
     
  
@@ -757,53 +711,9 @@
  
 </script>
 
-{% comment %} <script>
 
-    function updateTotalBalance() {
-        $.ajax({
-            url: '/get_total_balance/', 
-            type: 'GET',
-            success: function(data) {
-                $('#total-balance').text('₹' + data.total_balance);
-                $('#total-paidoff').text('₹' + data.paid_off);
-                $('#grand_total').text('₹' + data.grand_total);
-            },
-            error: function(error) {
-                console.log('Error fetching total balance:', error);
-            }
-        });
-    }
-    updateTotalBalance();
-</script> {% endcomment %}
 
-<script>
-    calculatetotal()
 
-    function calculatetotal() {
-        var table = document.getElementById('myTable');
-        var rows = table.getElementsByTagName('tr');
-        var tpaid = 0;
-        var tunpaid = 0;
-        var ttotal = 0;
-    
-        for (var i = 1; i < rows.length; i++) {
-            if (rows[i].style.display != 'none') {
-                var paidCell = rows[i].querySelector('.td_paidoff'); 
-                var unpaidCell = rows[i].querySelector('.td_balance'); 
-                var totalCell = rows[i].querySelector('.td_amount'); 
-    
-                tpaid += parseFloat(paidCell.textContent) || 0;
-                tunpaid += parseFloat(unpaidCell.textContent) || 0;
-                ttotal += parseFloat(totalCell.textContent) || 0;
-            }
-        }
-    
-        document.getElementById('paidval').textContent = tpaid.toFixed(2);
-        document.getElementById('unpaidval').textContent = tunpaid.toFixed(2);
-        document.getElementById('totalval').textContent = ttotal.toFixed(2);
-    }
-    
-</script>
 
 <script>
     jQuery(document).ready(function($) {
@@ -816,36 +726,7 @@
 
 
 
-<div class="modal" id="excelModal" tabindex="-1" role="dialog" aria-labelledby="excelModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="excelModalLabel">Upload File
-                    <label for="" style="color: red; font-size: x-small;" >* Refer Downloaded Sheet For Format </label><br></h5>
-                    <button type="button" class="btn close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true" style="font-size: x-large;">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <form id="excelForm" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <div class="form-group">
-                            <label for="file" style="color: black;">Choose Excel File for Sales invoice- </label> <br>
-                            <input type="file" class="form-control-file" id="billfile" name="billfile" accept=".xls, .xlsx"><br><br>
-                            
 
-                            <label for="file" style="color: black;">Choose Excel File for Sales invoice product- </label> <br>
-                            <input type="file" class="form-control-file" id="prdfile" name="prdfile" accept=".xls, .xlsx"><br>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="uploadFile()" data-dismiss="modal">Upload</button>
-                </div>
-            </div>
-        </div>
-    </div>
     <script>
         // Define global variables to store filter state
 var filters = {};
@@ -870,8 +751,8 @@ function cleardropdown(columnIndex) {
 
 // Function to filter the table based on the selected filter
 
+// JavaScript functions for filtering
 function filterTable(index) {
-    alert("ok")
     var input;
     document.getElementById('dropdownContent' + index).style.display = 'none';
     if (index === 0) {
@@ -917,39 +798,110 @@ function filterTable(index) {
     calculatetotal()
 }
 
+function formatDateString(inputDate) {
+    const parsedDate = new Date(inputDate);
+    const day = parsedDate.getDate();
+    const month = parsedDate.getMonth() + 1;
+    const year = parsedDate.getFullYear();
+    const formattedDate = `${month < 10 ? '0' : ''}${month}-${day < 10 ? '0' : ''}${day}-${year}`;
+    return formattedDate;
+}
+</script>
 
-// Close the dropdown if the user clicks outside of it
-$(window).on('click', function (e) {
-    if (!$(e.target).closest('.dropdown-content').length) {
-        $('.dropdown-content').removeClass('show');
-    }
-});
-function filterDateColumn() {
-    var filterInput = $('#filterInput0');
-    var filterValue = filterInput.val();
 
-    $('#InvoiceTable tbody tr').each(function () {
-        var row = $(this);
-        var cellValue = row.find('td').eq(0).text().trim();
-
-        // Check if the cell value matches the filter value
-        if (cellValue === filterValue) {
-            row.show();
-        } else {
-            row.hide();
+<script>
+    document.getElementById("search_input").addEventListener("input", function() {
+        var input, filter, table, tr, td, i, txtValue;
+        input = document.getElementById("search_input");
+        filter = input.value.toUpperCase();
+        table = document.getElementById("credittable");
+        tr = table.getElementsByTagName("tr");
+        var emptyMessage = document.getElementById("emptyMessage");
+        var anyMatch = false;
+        for (i = 1; i < tr.length; i++) {
+            tr[i].style.display = "table-row";
+            var found = false;
+            for (td of tr[i].getElementsByTagName("td")) {
+                txtValue = td.textContent || td.innerText;
+                if (txtValue.toUpperCase().includes(filter)) {
+                    found = true;
+                    anyMatch = true;
+                    break;
+                }
+            }
+            if (!found) {
+                tr[i].style.display = "none";
+            }
         }
+        emptyMessage.style.display = anyMatch ? "none" : "block";
+        calculatetotal()
     });
+</script>
+<!-- Share bill Modal -->
+<div class="modal fade" id="shareReportEmail" tabindex="-1" aria-labelledby="shareReportEmailLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content"  style=" background-color: #3e23b9e1;">
+        <div class="modal-header" style="border-bottom: 1px solid #ffffff;">
+          <h5 class="modal-title text-light" id="shareReportEmailLabel">Share Report Via Email</h5>
+          <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close" style="background-color: white;"></button>
+        </div>
+        <div class="modal-body">
+          <form action="{% url 'shareSalesReportsToEmail' %}" method="post" class="needs-validation" id="share_to_email_form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="emailIds" style="color: white;">Email IDs</label>
+                <textarea class="form-control" name="email_ids" id="emailIds" rows="3" placeholder="Multiple emails can be added by separating with a comma(,)." required></textarea>
+            </div>
+            <div class="form-group mt-2">
+                <label for="item_unitname" style="color: white;">Message(optional)</label>
+                <textarea name="email_message" id="email_message" class="form-control" cols="" rows="4" placeholder="This message will be sent along with the Stock Report."></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer d-flex justify-content-center" style="border-top: 1px solid #ffffff;">
+          <button type="submit" id="share_with_email" class="submitShareEmailBtn w-50 text-uppercase btn btn-info">SEND MAIL</button>
+        </div>
+      </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function(){
+        $('#share_with_email').on('click',function(){
+            var emailsInput = document.getElementById('emailIds');
+            var emailsString = emailsInput.value.trim();
 
-    // Close the dropdown
-    toggleDropdown(0);
-}
+            var emails = emailsString.split(',').map(function(email) {
+                return email.trim();
+            });
 
-// Update your existing filterTable function to use the new date filter function
-function filterTable(columnIndex) {
-    if (columnIndex === 0) {
-        filterDateColumn();
-    }
-}
+            var emailRegex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
 
-        </script>
+            var invalidEmails = []
+            if(emailsString == ""){
+                alert('Enter valid email addresses..')
+            }
+            else{
+                for (var i = 0; i < emails.length; i++) {
+                    var currentEmail = emails[i];
+
+                    if (currentEmail!="" && !emailRegex.test(currentEmail)) {
+                        console.log(currentEmail + ' is invalid!');
+                        invalidEmails.push(currentEmail)
+                    }
+                }
+                
+                if(invalidEmails.length > 0){
+                    alert('Invalid emails..Please check!\n'+invalidEmails)
+                    // alert(invalidEmails)
+                }else{
+                    $('#share_to_email_form').submit();
+                }
+            }
+        })
+    });
+    
+</script>
+
+
+
 {% endblock %}

@@ -37,6 +37,10 @@ from io import BytesIO
 # from xhtml2pdf import pisa
 from django.core.mail import send_mail
 from django.utils.dateparse import parse_date
+from itertools import groupby
+from operator import itemgetter
+from collections import defaultdict
+
 # Create your views here.
 
 def home(request):
@@ -4202,3 +4206,113 @@ def sales_report(request):
         credit=Creditnote.objects.filter(company=company_instance)
 
         return render(request,'sales_report.html',{'sales_invoices': invoices,'credit':credit,"staff":staff})
+      
+def shareSalesReportsToEmail(request):
+    if 'staff_id' in request.session:
+        staff_id = request.session['staff_id']
+    else:
+        return redirect('/')
+    
+    try:
+      
+      if request.method == 'POST':
+        
+        emails_string = request.POST['email_ids']
+
+        # Split the string by commas and remove any leading or trailing whitespace
+        emails_list = [email.strip() for email in emails_string.split(',')]
+        email_message = request.POST['email_message']
+                # print(emails_list)
+        print("ok")
+        staff = staff_details.objects.get(id=staff_id) 
+        company_instance = company.objects.get(id=staff.company.id)
+        invoices = SalesInvoice.objects.filter(company=company_instance)
+        credit_notes = Creditnote.objects.filter(company=company_instance)
+
+        # Create Excel file
+        excelfile = BytesIO()
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = 'Sales Reports'
+
+        # Write headers
+        headers = ['#', 'Date', 'Invoice Number', 'Party Name', 'Transaction Type', 'Amount']
+        for col_num, header in enumerate(headers, 1):
+            worksheet.cell(row=1, column=col_num, value=header)
+
+        # Write sales invoices data
+        for idx, invoice in enumerate(invoices, start=2):
+            worksheet.cell(row=idx, column=1, value=idx - 1)  # Index
+            worksheet.cell(row=idx, column=2, value=invoice.date)  # Date
+            worksheet.cell(row=idx, column=3, value=invoice.invoice_no)  # Invoice Number
+            worksheet.cell(row=idx, column=4, value=invoice.party_name)  # Party Name
+            worksheet.cell(row=idx, column=5, value='Sale Invoice')  # Transaction Type
+            worksheet.cell(row=idx, column=6, value=invoice.grandtotal)  # Amount
+
+        # Write credit notes data
+        for idx, credit_note in enumerate(credit_notes, start=len(invoices) + 2):
+            worksheet.cell(row=idx, column=1, value=idx - 1)  # Index
+            worksheet.cell(row=idx, column=2, value=credit_note.date)  # Date
+            worksheet.cell(row=idx, column=3, value=credit_note.returnno)  # Return Number
+            worksheet.cell(row=idx, column=4, value=credit_note.party.party_name)  # Party Name
+            worksheet.cell(row=idx, column=5, value='Credit Note')  # Transaction Type
+            worksheet.cell(row=idx, column=6, value=credit_note.grandtotal)  # Amount
+
+        # Save workbook to BytesIO object
+        workbook.save(excelfile)
+
+        # Compose email
+        mail_subject = f'Sales Reports - {date.today()}'
+        message = f"Hi,\nPlease find the SALES REPORTS file attached.\n \n{email_message}\n--\nRegards,\n{company_instance.company_name}\n{company_instance.address}\n{company_instance.state} - {company_instance.country}\n{company_instance.contact}"
+        email = EmailMessage(mail_subject, message, settings.EMAIL_HOST_USER, to=emails_list)
+        print(staff.email)
+
+        # Attach Excel file
+        email.attach(f'Sales Reports-{date.today()}.xlsx', excelfile.getvalue(), 'application/vnd.ms-excel')
+        email.send(fail_silently=False)
+
+        messages.success(request, 'Sales Report has been shared via email successfully..!')
+    except Exception as e:
+        print(e)
+        messages.error(request, 'An error occurred while sharing the sales report via email.')
+    
+    return redirect('sales_report')
+def salesreport_graph(request):
+    if 'staff_id' in request.session:
+        staff_id = request.session['staff_id']
+    else:
+        return redirect('/')
+
+    staff = staff_details.objects.get(id=staff_id)
+    company_instance = company.objects.get(id=staff.company.id)
+    
+    # Retrieve sales data
+    sales_data = defaultdict(int)
+    for month in range(1, 13):
+        sales_data[month] = (
+            SalesInvoice.objects
+            .filter(date__month=month)
+            .aggregate(total_sales=Sum('grandtotal'))['total_sales'] or 0
+        )
+
+    # Retrieve credit note data
+    credit_note_data = defaultdict(int)
+    for month in range(1, 13):
+        credit_note_data[month] = (
+            Creditnote.objects
+            .filter(date__month=month)
+            .aggregate(total_sales=Sum('grandtotal'))['total_sales'] or 0
+        )
+
+    # Merge sales and credit note data for each month
+    merged_data = [{'date__month': month, 'total_sales': sales_data[month] + credit_note_data[month]} for month in range(1, 13)]
+
+    # Prepare data for chart
+    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    labels = [month_names[month - 1] for month in range(1, 13)]
+    sales = [item['total_sales'] for item in merged_data]
+
+    # Prepare data for chart
+    chart_data = {'labels': labels, 'sales': sales}
+    years = list(range(2022, 2031))
+    return render(request, 'saleschart.html', {'chart_data': chart_data, 'staff': staff, 'years': years})
