@@ -37,8 +37,7 @@ from io import BytesIO
 # from xhtml2pdf import pisa
 from django.core.mail import send_mail
 from django.utils.dateparse import parse_date
-from itertools import groupby
-from operator import itemgetter
+
 from collections import defaultdict
 
 # Create your views here.
@@ -4286,33 +4285,34 @@ def salesreport_graph(request):
     staff = staff_details.objects.get(id=staff_id)
     company_instance = company.objects.get(id=staff.company.id)
     
-    # Retrieve sales data
-    sales_data = defaultdict(int)
+    # Retrieve monthly sales data
+    monthly_sales_data = defaultdict(int)
     for month in range(1, 13):
-        sales_data[month] = (
+        monthly_sales_data[month] = (
             SalesInvoice.objects
             .filter(date__month=month)
             .aggregate(total_sales=Sum('grandtotal'))['total_sales'] or 0
         )
 
-    # Retrieve credit note data
-    credit_note_data = defaultdict(int)
-    for month in range(1, 13):
-        credit_note_data[month] = (
-            Creditnote.objects
-            .filter(date__month=month)
+    # Retrieve yearly sales data
+    current_year = datetime.now().year
+    yearly_sales_data = defaultdict(int)
+    for year in range(2022, current_year + 1):
+        yearly_sales_data[year] = (
+            SalesInvoice.objects
+            .filter(date__year=year)
             .aggregate(total_sales=Sum('grandtotal'))['total_sales'] or 0
         )
 
-    # Merge sales and credit note data for each month
-    merged_data = [{'date__month': month, 'total_sales': sales_data[month] + credit_note_data[month]} for month in range(1, 13)]
-
     # Prepare data for chart
     month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    labels = [month_names[month - 1] for month in range(1, 13)]
-    sales = [item['total_sales'] for item in merged_data]
+    monthly_labels = [month_names[month - 1] for month in range(1, 13)]
+    monthly_sales = [monthly_sales_data[month] for month in range(1, 13)]
+
+    yearly_labels = [str(year) for year in range(2014, current_year + 1)]
+    yearly_sales = [yearly_sales_data[year] for year in range(2014, current_year + 1)]
 
     # Prepare data for chart
-    chart_data = {'labels': labels, 'sales': sales}
-    years = list(range(2022, 2031))
-    return render(request, 'saleschart.html', {'chart_data': chart_data, 'staff': staff, 'years': years})
+    chart_data = {'monthly_labels': monthly_labels, 'monthly_sales': monthly_sales,
+                  'yearly_labels': yearly_labels, 'yearly_sales': yearly_sales}
+    return render(request, 'saleschart.html', {'chart_data': chart_data, 'staff': staff})

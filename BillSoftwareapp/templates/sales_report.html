@@ -82,8 +82,7 @@
         z-index: 1;
         display: none;
         position: absolute;
-        top: 40px;
-        left: 2px;
+        top: 35px;
         background-color: #b4b4b450;
         backdrop-filter: blur(5px);
         padding: 10px;
@@ -282,7 +281,7 @@
                 </span>
             </button>
             
-            <button class="btn p-0 ps-2 pe-2 ms-2 mb-2" type="button" onclick="generatePDF()">
+            <button class="btn p-0 ps-2 pe-2 ms-2 " type="button" onclick="generatePDF()">
                 <span>
                     <img width="22px" src="{% static 'images/PDF_icon.png' %}" alt="Excel Icon">
                     <br><span style="color: black; font-size: small; ">Pdf</span>
@@ -318,10 +317,10 @@
                     <br><span style="color: black; font-size: small; ">Printer</span>
                 </span>
             </button>
-            <button class="btn p-0 ps-2 pe-2 ms-2" type="button"href="{% url 'sales_report' %}">
+            <button class="btn p-0 ps-2 pe-2 ms-2 mb-2" type="button"href="{% url 'sales_report' %}" style="text-align: right; font-size: x-large; color: black;">
                 <span>
-                    <img width="22px" src="{% static 'images/close.jpeg' %}" alt="Excel Icon">
-                    <br><span style="color: black; font-size: small; ">Back</span>
+                    <i  width="22px" class="fa fa-times mt-2" aria-hidden="true"></i>
+
                 </span>
             </button>
            
@@ -466,7 +465,7 @@
             <div class="mt-3"   id="tablediv">
                 <h1><ul style=" text-align:center;">{{staff.company.company_name}}</ul></h1>
                 <h3><ul style=" text-align:center;">Sales Report</ul></h3>
-                <div id="dateDisplay" style="margin-bottom: 10px;color:black;margin-left:5%;"></div>
+                <div id="dateDisplay" style="margin-bottom: 10px;color:black;margin-left:40%;"></div>
 
 
                 <table class="table tb table-bordered" id="credittable"  style="text-align: center;margin-left:3%;width:95%;">
@@ -540,23 +539,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for p in credit %}
-                        <tr>
-                            <td  style="color: black;">{{p.date | date:'d-m-Y'}}</td>
-                            <td style="color: black;" >{{p.returnno}}</td>
-                            <td  style="color: black;">{{p.party.party_name}}</td>
-                            <td style="color: black;" >Credit Note</td>
-                            <td  style="color: black;" >{{p.grandtotal}}</td>
-
-
-    
-    
-    
-  
-                                    
-                               
-                    </tr>
-                    {% endfor %}
+                        
                     {% for s in sales_invoices %}
                     <tr class="sales-row">                                               
                         <td class="text-center date-cell td_date "  >{{s.date| date:'d-m-Y'}}</td>
@@ -571,6 +554,23 @@
 
 
                         </tr>
+                        {% for p in credit %}
+                        <tr>
+                            <td  style="color: black;">{{p.date | date:'d-m-Y'}}</td>
+                            <td style="color: black;" >{{p.invoice_no}}</td>
+                            <td  style="color: black;">{{p.party.party_name}}</td>
+                            <td style="color: black;" >Credit Note</td>
+                            <td  style="color: black;" >{{p.grandtotal}}</td>
+
+
+    
+    
+    
+  
+                                    
+                               
+                    </tr>
+                    {% endfor %}
 
                 </tbody>
             </table>

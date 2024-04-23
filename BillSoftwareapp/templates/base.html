@@ -20253,10 +20253,7 @@ html[dir="rtl"] [direction="rtl"][data-sidebar-style="compact"]:not([data-layout
                               <i class="fa-solid fa-plus" id="addRowIcon"></i>
                           </a>
                       </li>
-                      <li style="display: flex; align-items: center;">
-                        <a href="{% url 'sales_report' %}" style="text-decoration: none;">Sales Report</a>
-                        
-                    </li>
+                      
                         </ul>
                     </li>
 
@@ -20272,8 +20269,12 @@ html[dir="rtl"] [direction="rtl"][data-sidebar-style="compact"]:not([data-layout
 
                     <li><a href="widget-basic.html" aria-expanded="false"><i class="icon icon-globe-2"></i><span
                         class="nav-text">Stock Report</span></a></li>
+                        <li><a href="{% url 'sales_report' %}" aria-expanded="false"><i class="icon icon-globe-2"></i><span
+                          class="nav-text">Stock Report</span></a></li>
+                        
                     
                 </ul>
+
             </div>
 
 
